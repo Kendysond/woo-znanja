@@ -1,4 +1,4 @@
-<?php // error_reporting(-1); ini_set('display_errors', 1);//error_reporting(0); ini_set('display_errors', 0);
+<?php 
 /**
  * Plugin Name: WooCommerce Znaja Integration
  * Plugin URI: https://waymakerlearning.com/
@@ -8,10 +8,9 @@
  * Author URI: https://github.com/kendysond
  * Developer: Douglas Kendyson
  * Developer URI: https://github.com/kendysond
- * Text Domain: woocommerce-extension
+ * Text Domain: woo-znaja
  * Domain Path: /languages
  *
- * Copyright: © 2009-2015 WooCommerce.
  * License: GNU General Public License v3.0
  * License URI: http://www.gnu.org/licenses/gpl-3.0.html
  */
@@ -30,6 +29,7 @@ define( 'WC_KKD_ZNAJA_VERSION', '1.0.0' );
 function kkd_znanja_woocommerce_payment_complete( ) {
 	global $woocommerce;
 	$order_id = 94;
+
     $order = new WC_Order( $order_id ); //wc_get_order($order_id);
     $items = $order->get_items(); 
    
@@ -37,11 +37,10 @@ function kkd_znanja_woocommerce_payment_complete( ) {
     $customer['first_name'] =  get_post_meta($order_id,'_billing_first_name',true);
     $customer['last_name'] = get_post_meta($order_id,'_billing_last_name',true);
     $customer['email'] = get_post_meta($order_id,'_billing_email',true);
-    $customer['email'] = 'kendysonsss@kendyson.com';
     $customer['is_active'] = true;
     
     $result = znanja_get_user_id($customer);
-   
+   	
     foreach ($items as $key => $item) {
     	$user_id = $result['user_id'];
     	$group_id = get_post_meta( $item['product_id'], '_course_group_id', true);
@@ -52,7 +51,7 @@ function kkd_znanja_woocommerce_payment_complete( ) {
     	}
     }
    
-    // die('End Stuff');
+    die('End Stuff');
 }
 add_action( 'woocommerce_after_cart_table', 'kkd_znanja_woocommerce_payment_complete' );
 

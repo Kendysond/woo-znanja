@@ -1,12 +1,11 @@
-<?php error_reporting(-1); ini_set('display_errors', 1);//error_reporting(0); 
-
+<?php error_reporting(0); ini_set('display_errors', 0); 
 
 /**
  * Add a custom product tab.
  */
 function kkd_znanja_product_tabs( $original_tabs) {
 
-	$new_tab['giftcard'] = array(
+	$new_tab['znanja'] = array(
 		'label'		=> __( 'Znanja Options', 'woocommerce' ),
 		'target'	=> 'znanja_options',
 		'class'		=> array( 'show_if_simple', 'show_if_variable'  ),
@@ -60,8 +59,8 @@ add_action( 'woocommerce_process_product_meta_variable', 'kkd_znanja_save_option
 
 
 function _znanja_request($url, $method, $payload=array('')){
-	$api_key = '6ff0dbd4-bff8-4181-a55f-1551c77ce57a';
-	$api_id = 'public_api:membership:74825:8136';
+	$api_key = get_option( 'kkd_znanja_api_key', 1 );
+	$api_id = get_option( 'kkd_znanja_api_id', 1 );
 	$credentials = new Dflydev\Hawk\Credentials\Credentials(
 		$api_key,
 		'sha256',
@@ -99,7 +98,7 @@ function _znanja_request($url, $method, $payload=array('')){
 	{
 		$args['method'] = 'POST';
 		$args['headers']['Content-Type'] = 'application/json';
-		
+
 		$response = wp_remote_post( $url , $args );
 	}
 
@@ -125,8 +124,7 @@ function mysite_woocommerce_payment_complete( $order_id ) {
     
     
 }
-// add_action( 'woocommerce_payment_complete', 'mysite_woocommerce_payment_complete', 10, 1 );
-
+add_action( 'woocommerce_payment_complete', 'mysite_woocommerce_payment_complete', 10, 1 );
 
 function znanja_get_users($search = null){
 
@@ -167,6 +165,7 @@ function  znanja_get_user_id($customer){
 		$user_id = $response['object']->id;
 	}elseif ($response['code'] === 404) {
 		$response = znanja_create_user($customer);
+		// print_r($response);
 		if ($response['code'] === 200) {
 			$user_id = $response['object']->id;
 			$password = $response['object']->password;
@@ -203,3 +202,96 @@ function znanja_add_to_group($payload){
 	$result = _znanja_request($url, 'POST', $payload);
 	return $result;
 }
+class KKD_Znanja_Settings_Tab {
+
+    /**
+     * Bootstraps the class and hooks required actions & filters.
+     *
+     */
+    public static function init() {
+        add_filter( 'woocommerce_settings_tabs_array', __CLASS__ . '::add_settings_tab', 50 );
+        add_action( 'woocommerce_settings_tabs_settings_tab_demo', __CLASS__ . '::settings_tab' );
+        add_action( 'woocommerce_update_options_settings_tab_demo', __CLASS__ . '::update_settings' );
+    }
+    
+    
+    /**
+     * Add a new settings tab to the WooCommerce settings tabs array.
+     *
+     * @param array $settings_tabs Array of WooCommerce setting tabs & their labels, excluding the Subscription tab.
+     * @return array $settings_tabs Array of WooCommerce setting tabs & their labels, including the Subscription tab.
+     */
+    public static function add_settings_tab( $settings_tabs ) {
+        $settings_tabs['settings_tab_demo'] = __( 'Znanja LMS', 'woocommerce-znanja-settings-tab' );
+        return $settings_tabs;
+    }
+
+
+    /**
+     * Uses the WooCommerce admin fields API to output settings via the @see woocommerce_admin_fields() function.
+     *
+     * @uses woocommerce_admin_fields()
+     * @uses self::get_settings()
+     */
+    public static function settings_tab() {
+        woocommerce_admin_fields( self::get_settings() );
+    }
+
+
+    /**
+     * Uses the WooCommerce options API to save settings via the @see woocommerce_update_options() function.
+     *
+     * @uses woocommerce_update_options()
+     * @uses self::get_settings()
+     */
+    public static function update_settings() {
+        woocommerce_update_options( self::get_settings() );
+    }
+
+
+    /**
+     * Get all the settings for this plugin for @see woocommerce_admin_fields() function.
+     *
+     * @return array Array of settings for @see woocommerce_admin_fields() function.
+     */
+    public static function get_settings() {
+
+        $settings = array(
+            'section_title' => array(
+                'name'     => __( 'Znanja LMS API Acccess settings', 'woocommerce-znanja-settings-tab' ),
+                'type'     => 'title',
+                'desc'     => '',
+                'id'       => 'wc_settings_tab_demo_section_title'
+            ),
+            // $api_key = '6ff0dbd4-bff8-4181-a55f-1551c77ce57a';
+	// $api_id = 'public_api:membership:74825:8136';
+            'api_id' => array(
+                'name' => __( 'API Key Identifier', 'woocommerce-znanja-settings-tab' ),
+                'type' => 'text',
+                'css'      => 'min-width:400px;',
+                'id'   => 'kkd_znanja_api_id'
+            ),
+            'api_key' => array(
+                'name' => __( 'API Key', 'woocommerce-znanja-settings-tab' ),
+                'type' => 'text',
+                'css'      => 'min-width:400px;',
+                'id'   => 'kkd_znanja_api_key'
+            ),
+            'url' => array(
+                'name' => __( 'Front End Znanja URL', 'woocommerce-znanja-settings-tab' ),
+                'type' => 'text',
+                'css'      => 'min-width:400px;',
+                'id'   => 'kkd_znanja_url'
+            ),
+            'section_end' => array(
+                 'type' => 'sectionend',
+                 'id' => 'wc_settings_tab_demo_section_end'
+            )
+        );
+
+        return apply_filters( 'wc_settings_tab_demo_settings', $settings );
+    }
+
+}
+
+KKD_Znanja_Settings_Tab::init();
