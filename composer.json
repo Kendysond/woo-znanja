@@ -1,0 +1,5 @@
+{
+    "require": {
+        "dflydev/hawk": "^0.0.0"
+    }
+}
