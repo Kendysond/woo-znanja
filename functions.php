@@ -4,11 +4,11 @@
 /**
  * Add a custom product tab.
  */
-function custom_product_tabs( $original_tabs) {
+function kkd_znanja_product_tabs( $original_tabs) {
 
 	$new_tab['giftcard'] = array(
 		'label'		=> __( 'Znanja Options', 'woocommerce' ),
-		'target'	=> 'giftcard_options',
+		'target'	=> 'znanja_options',
 		'class'		=> array( 'show_if_simple', 'show_if_variable'  ),
 	);
 
@@ -20,18 +20,14 @@ function custom_product_tabs( $original_tabs) {
 	return $tabs;
 
 }
-add_filter( 'woocommerce_product_data_tabs', 'custom_product_tabs' );
+add_filter( 'woocommerce_product_data_tabs', 'kkd_znanja_product_tabs' );
 
 
-/**
- * Contents of the gift card options product tab.
- */
-function giftcard_options_product_tab_content() {
+function kkd_znanja_options_product_tab_content() {
 
 	global $post;
 	
-	// Note the 'id' attribute needs to match the 'target' parameter set above
-	?><div id='giftcard_options' class='panel woocommerce_options_panel'><?php
+	?><div id='znanja_options' class='panel woocommerce_options_panel'><?php
 
 		?><div class='options_group'><?php
 
@@ -50,21 +46,20 @@ function giftcard_options_product_tab_content() {
 	</div><?php
 
 }
-add_action( 'woocommerce_product_data_panels', 'giftcard_options_product_tab_content' );
-function save_giftcard_option_fields( $post_id ) {
+add_action( 'woocommerce_product_data_panels', 'kkd_znanja_options_product_tab_content' );
+function kkd_znanja_save_options_fields( $post_id ) {
 	
 	if ( isset( $_POST['_course_group_id'] ) ) :
 		update_post_meta( $post_id, '_course_group_id', absint( $_POST['_course_group_id'] ) );
 	endif;
 	
 }
-add_action( 'woocommerce_process_product_meta_simple', 'save_giftcard_option_fields'  );
-add_action( 'woocommerce_process_product_meta_variable', 'save_giftcard_option_fields'  );
+add_action( 'woocommerce_process_product_meta_simple', 'kkd_znanja_save_options_fields'  );
+add_action( 'woocommerce_process_product_meta_variable', 'kkd_znanja_save_options_fields'  );
+
+
 
 function _znanja_request($url, $method, $payload=array('')){
-	if ($payload == null) {
-		$payload=array('');
-	}
 	$api_key = '6ff0dbd4-bff8-4181-a55f-1551c77ce57a';
 	$api_id = 'public_api:membership:74825:8136';
 	$credentials = new Dflydev\Hawk\Credentials\Credentials(
@@ -92,6 +87,7 @@ function _znanja_request($url, $method, $payload=array('')){
 		'headers' => array(
 		    $request->header()->fieldName() => $request->header()->fieldValue()
 	));
+
 	if($method == "GET")
 	{
 		$args['method'] = 'GET';
@@ -103,6 +99,7 @@ function _znanja_request($url, $method, $payload=array('')){
 	{
 		$args['method'] = 'POST';
 		$args['headers']['Content-Type'] = 'application/json';
+		
 		$response = wp_remote_post( $url , $args );
 	}
 
@@ -116,71 +113,93 @@ function _znanja_request($url, $method, $payload=array('')){
 		$args['method'] = 'DELETE';
 		$response = wp_remote_post( $url , $args );
 	}
+	$response_code = wp_remote_retrieve_response_code( $response );
+	$json = wp_remote_retrieve_body($response);
 
 	
-	$result = wp_remote_retrieve_body( $response );
-
-	$response_code = wp_remote_retrieve_response_code( $response );
-	// echo $response_code;
-	$result  = array('code' => $response_code, 'json' => json_decode($result));
+	$result  = array('code' => $response_code, 'object' => json_decode($json));
 	return $result;
 }
 
+function mysite_woocommerce_payment_complete( $order_id ) {
+    
+    
+}
+// add_action( 'woocommerce_payment_complete', 'mysite_woocommerce_payment_complete', 10, 1 );
 
-function znanja_get_users(){
+
+function znanja_get_users($search = null){
+
 	$url = 'https://api.znanja.com/api/hawk/v1/users';
-	$result = _znanja_request($url, 'GET', $payload);
+	if ($search != null) {
+		$url = 'https://api.znanja.com/api/hawk/v1/users/'.urlencode($search);
+	}
+	$result = _znanja_request($url, 'GET');
 	return $result;
 }
 
 function znanja_get_groups(){
 	$url = 'https://api.znanja.com/api/hawk/v1/groups';
-	$result = _znanja_request($url, 'GET', $payload);
+	$result = _znanja_request($url, 'GET');
 	return $result;
 }
 
 function  znanja_get_group_users($id){
 	$url = 'https://api.znanja.com/api/hawk/v1/group/'.$id.'/users';
  
-	$result = _znanja_request($url, 'GET', $payload);
+	$result = _znanja_request($url, 'GET');
 	return $result;
 }
 
 function  znanja_get_user($id){
 	$url = 'https://api.znanja.com/api/hawk/v1/user/'.$id;
  
-	$result = _znanja_request($url, 'GET', $payload);
+	$result = _znanja_request($url, 'GET');
 	return $result;
 }
 
+function  znanja_get_user_id($customer){
+
+	$response = znanja_get_user($customer['email']);
+	$user_id = 0;
+	$password = null;
+	if ($response['code'] === 200) {
+		$user_id = $response['object']->id;
+	}elseif ($response['code'] === 404) {
+		$response = znanja_create_user($customer);
+		if ($response['code'] === 200) {
+			$user_id = $response['object']->id;
+			$password = $response['object']->password;
+		}
+	}
+	$result = ['user_id' => $user_id, 'password' => $password];
+	return $result;
+}
 
 function znanja_create_user($payload){
 	$url = 'https://api.znanja.com/api/hawk/v1/user';
 
 	$result = _znanja_request($url, 'PUT', $payload);
+	//Send User ane mail 
 	return $result;
 }
 function znanja_get_group_memberships($id){
 	$url = 'https://api.znanja.com/api/hawk/v1/group/'.$id.'/memberships';
 
-	$result = _znanja_request($url, 'GET', $payload);
+	$result = _znanja_request($url, 'GET');
 	return $result;
 }
 
 function znanja_get_membership($user_id,$organization_id){
 	$url = 'https://api.znanja.com/api/hawk/v1/membership/'.$user_id.'/'.$organization_id;
 
-	$result = _znanja_request($url, 'GET', $payload);
+	$result = _znanja_request($url, 'GET');
 	return $result;
 }
 
 function znanja_add_to_group($payload){
 
 	$url = 'https://api.znanja.com/api/hawk/v1/group/'.$payload['group_id'].'/membership/'.$payload['user_id'];
-	$payload  = array(
-
-		'is_instructor' => false,
-	);
 	$result = _znanja_request($url, 'POST', $payload);
 	return $result;
 }
