@@ -16,44 +16,29 @@
  */
 
 
-
 require_once dirname( __FILE__ ) . '/vendor/autoload.php';
 require_once dirname( __FILE__ ) . '/functions.php';
-// require_once  './woocommerce/woocommerce.php';
 
 define( 'WC_KKD_ZNAJA_MAIN_FILE', __FILE__ );
 
 define( 'WC_KKD_ZNAJA_VERSION', '1.0.0' );
 
 
-function kkd_znanja_woocommerce_payment_complete( ) {
-	global $woocommerce;
-	$order_id = 94;
-
-    $order = new WC_Order( $order_id ); //wc_get_order($order_id);
-    $items = $order->get_items(); 
-   
-    $customer = array();
-    $customer['first_name'] =  get_post_meta($order_id,'_billing_first_name',true);
-    $customer['last_name'] = get_post_meta($order_id,'_billing_last_name',true);
-    $customer['email'] = get_post_meta($order_id,'_billing_email',true);
-    $customer['is_active'] = true;
-    
-    $result = znanja_get_user_id($customer);
-   	
-    foreach ($items as $key => $item) {
-    	$user_id = $result['user_id'];
-    	$group_id = get_post_meta( $item['product_id'], '_course_group_id', true);
-    	$payload  = array('group_id' => (int)$group_id,'user_id' => (int)$user_id, 'is_instructor' => false);
-    	$response = znanja_add_to_group($payload);
-    	if ($response['code'] === 201) {
-    	
-    	}
+add_filter( 'woocommerce_thankyou_order_received_text', 'wpb_thank_you', 10, 2 );
+function wpb_thank_you( $thankyoutext, $order ) {
+	$url = get_option( 'kkd_znanja_url', 1 );
+	$email = get_post_meta( $order->id, 'znanja_email', true );
+    $password = get_post_meta( $order->id, 'znanja_password', true );
+    if ($password == null) {
+    	 $password .= "<i> Login with your existing password </i>";
+    }else{
+    	$password.= '<br> <i> Kindly ensure you change your password after logging in<i> ';
     }
-   
-    die('End Stuff');
-}
-add_action( 'woocommerce_after_cart_table', 'kkd_znanja_woocommerce_payment_complete' );
+    // $thankyoutext .= '<br>';
+	$thankyoutext .= '<h2 class="woocommerce-order-details__title">Learning Portal Credentials</h2>';
+    $thankyoutext .= "<b>Portal</b>: <a href='".$url."' target='_blank'>".$url."</a><br>";
+    $thankyoutext .= "<b>Email</b>: ".$email."<br>";
+    $thankyoutext .= "<b>Password</b>: ".$password."<br><br>";
 
-// add_action('init', 'kkd_znanja_woocommerce_payment_complete', 1);
-// kkd_znanja_woocommerce_payment_complete( 93 );
+	return $thankyoutext;
+}
