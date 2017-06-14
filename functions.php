@@ -26,14 +26,40 @@ function kkd_znanja_options_product_tab_content() {
 	?><div id='znanja_options' class='panel woocommerce_options_panel'><?php
 
 		?><div class='options_group'><?php
-			woocommerce_wp_text_input( array(
-				'id'				=> '_course_group_id',
-				'label'				=> __( 'Group ID', 'woocommerce' ),
-				'desc_tip'			=> 'true',
-				'description'		=> __( 'Group ID the Course is in', 'woocommerce' ),
-				'type' 				=> 'number',
-				
-			) );
+			// woocommerce_wp_text_input( 
+						
+			// 					array(
+			// 					'id'				=> '_course_group_id',
+			// 					'label'				=> __( 'Group ID', 'woocommerce' ),
+			// 					'desc_tip'			=> 'true',
+			// 					'description'		=> __( 'Group ID the Course is in', 'woocommerce' ),
+			// 					'type' 				=> 'number',
+			// 						)
+			// 	 );
+			$groups = znanja_get_groups();
+			if ($groups['code'] === 200) {
+				if (count($groups['object']) > 0) {
+					$groups_array = array();
+					foreach ($groups['object'] as $key => $object) {
+						$groups_array[$object->id] = $object->name;
+					}
+				}else{
+					$groups_array = array(
+							''   => __( 'No group created', 'woocommerce' ),
+					);
+				}
+			}else{
+				$groups_array = array(
+						''   => __( 'No group created', 'woocommerce' ),
+				);
+			}
+			woocommerce_wp_select( 
+				array( 
+					'id'				=> '_course_group_id',
+					'label'				=> __( 'Group ID', 'woocommerce' ),
+					'options' => $groups_array
+					)
+				);
 
 		?></div>
 
@@ -128,8 +154,15 @@ function znanja_woocommerce_payment_complete( $order_id ) {
     $customer['is_active'] = true;
     
     $result = znanja_get_user_id($customer);
+    // print_r($result);
+			// die();
+			
    	$order->update_meta_data('znanja_email', $customer['email']);
-    $order->update_meta_data('znanja_password',$result['password']);
+	$password = get_post_meta( $order->id, 'znanja_password', true );
+
+   	if ($password == null) {
+   		$order->update_meta_data('znanja_password',$result['password']);
+    }
     $order->save();
     $order->update_status('completed');
     foreach ($items as $key => $item) {
@@ -269,12 +302,12 @@ class KKD_Znanja_Settings_Tab {
                 'css'      => 'min-width:400px;',
                 'id'   => 'kkd_znanja_url'
             ),
-            'thank-you' => array(
-                'name' => __( 'Thank you page description', 'woocommerce-znanja-settings-tab' ),
-                'type' => 'textarea',
-                'css'      => 'min-width:400px;',
-                'id'   => 'kkd_znanja_thank_you'
-            ),
+            // 'thank-you' => array(
+            //     'name' => __( 'Thank you page description', 'woocommerce-znanja-settings-tab' ),
+            //     'type' => 'textarea',
+            //     'css'      => 'min-width:400px;',
+            //     'id'   => 'kkd_znanja_thank_you'
+            // ),
             'section_end' => array(
                  'type' => 'sectionend',
                  'id' => 'wc_settings_tab_demo_section_end'

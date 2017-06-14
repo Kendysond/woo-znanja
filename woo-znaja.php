@@ -32,7 +32,7 @@ function wpb_thank_you( $thankyoutext, $order ) {
 	    if ($password == null) {
 	    	 $password .= "<i> Login with your existing password </i>";
 	    }else{
-	    	$password.= '<br> <i> Kindly ensure you change your password after logging in<i> ';
+	    	$password .= '<br> <i> Kindly ensure you change your password after logging in<i> ';
 	    }
 
     // $thankyoutext .= '<br>';
@@ -58,7 +58,7 @@ function kkd_znanja_add_credentials_to_email( $order, $is_admin_email ) {
 	    if ($password == null) {
 	    	 $password .= "<i> Login with your existing password </i>";
 	    }else{
-	    	$password.= '<br> <i> Kindly ensure you change your password after logging in<i> ';
+	    	$password .= '<br> <i> Kindly ensure you change your password after logging in<i> ';
 	    }
 
 	    $thankyoutext .= '<h2 class="woocommerce-order-details__title">Learning Portal Credentials</h2>';
