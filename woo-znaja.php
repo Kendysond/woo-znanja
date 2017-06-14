@@ -47,3 +47,28 @@ function wpb_thank_you( $thankyoutext, $order ) {
     }
 	return $thankyoutext;
 }
+add_action( 'woocommerce_email_before_order_table', 'wli_add_shipping_method_to_order_email', 10, 2 ); 
+
+function wli_add_shipping_method_to_order_email( $order, $is_admin_email ) { 
+    $thankyoutext = '';
+    $url = get_option( 'kkd_znanja_url', 1 );
+	$email = get_post_meta( $order->id, 'znanja_email', true );
+    $password = get_post_meta( $order->id, 'znanja_password', true );
+    if ($password == null) {
+    	 $password .= "<i> Login with your existing password </i>";
+    }else{
+    	$password.= '<br> <i> Kindly ensure you change your password after logging in<i> ';
+    }
+
+    $thankyoutext .= '<h2 class="woocommerce-order-details__title">Learning Portal Credentials</h2>';
+    if ($email != null) {
+		$thankyoutext .= "<b>Portal</b>: <a href='".$url."' target='_blank'>".$url."</a><br>";
+	    $thankyoutext .= "<b>Email</b>: ".$email."<br>";
+	    $thankyoutext .= "<b>Password</b>: ".$password."<br><br>";
+    }else{
+	    $thankyoutext .= "<i> Login Credentials would be sent after your payment is confirmed. </i><br><br>";
+
+    }
+	echo $thankyoutext;
+}
+
