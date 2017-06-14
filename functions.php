@@ -131,7 +131,7 @@ function znanja_woocommerce_payment_complete( $order_id ) {
    	$order->update_meta_data('znanja_email', $customer['email']);
     $order->update_meta_data('znanja_password',$result['password']);
     $order->save();
-    
+    $order->update_status('completed');
     foreach ($items as $key => $item) {
     	$user_id = $result['user_id'];
     	$group_id = get_post_meta( $item['product_id'], '_course_group_id', true);
