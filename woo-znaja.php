@@ -28,17 +28,22 @@ add_filter( 'woocommerce_thankyou_order_received_text', 'wpb_thank_you', 10, 2 )
 function wpb_thank_you( $thankyoutext, $order ) {
 	$url = get_option( 'kkd_znanja_url', 1 );
 	$email = get_post_meta( $order->id, 'znanja_email', true );
-    $password = get_post_meta( $order->id, 'znanja_password', true );
-    if ($password == null) {
-    	 $password .= "<i> Login with your existing password </i>";
-    }else{
-    	$password.= '<br> <i> Kindly ensure you change your password after logging in<i> ';
-    }
+	    $password = get_post_meta( $order->id, 'znanja_password', true );
+	    if ($password == null) {
+	    	 $password .= "<i> Login with your existing password </i>";
+	    }else{
+	    	$password.= '<br> <i> Kindly ensure you change your password after logging in<i> ';
+	    }
+
     // $thankyoutext .= '<br>';
 	$thankyoutext .= '<h2 class="woocommerce-order-details__title">Learning Portal Credentials</h2>';
-    $thankyoutext .= "<b>Portal</b>: <a href='".$url."' target='_blank'>".$url."</a><br>";
-    $thankyoutext .= "<b>Email</b>: ".$email."<br>";
-    $thankyoutext .= "<b>Password</b>: ".$password."<br><br>";
+    if ($email != null) {
+		$thankyoutext .= "<b>Portal</b>: <a href='".$url."' target='_blank'>".$url."</a><br>";
+	    $thankyoutext .= "<b>Email</b>: ".$email."<br>";
+	    $thankyoutext .= "<b>Password</b>: ".$password."<br><br>";
+    }else{
+	    $thankyoutext .= "<i> Login Credentials would be sent after your payment is confirmed. </i><br><br>";
 
+    }
 	return $thankyoutext;
 }
