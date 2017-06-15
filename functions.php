@@ -26,20 +26,32 @@ function kkd_znanja_options_product_tab_content() {
 	?><div id='znanja_options' class='panel woocommerce_options_panel'><?php
 
 		?><div class='options_group'><?php
-			// woocommerce_wp_text_input( 
+			woocommerce_wp_text_input( 
 						
-			// 					array(
-			// 					'id'				=> '_course_group_id',
-			// 					'label'				=> __( 'Group ID', 'woocommerce' ),
-			// 					'desc_tip'			=> 'true',
-			// 					'description'		=> __( 'Group ID the Course is in', 'woocommerce' ),
-			// 					'type' 				=> 'number',
-			// 						)
-			// 	 );
+								array(
+								'id'				=> '_course_id',
+								'label'				=> __( 'Course ID', 'woocommerce' ),
+								'desc_tip'			=> 'true',
+								'description'		=> __( 'This will override the group ID', 'woocommerce' ),
+								'type' 				=> 'number',
+									)
+				 );
+			woocommerce_wp_text_input( 
+						
+						array(
+							'id'				=> '_duration',
+							'label'				=> __( 'Course Duration(days)', 'woocommerce' ),
+							'desc_tip'			=> 'true',
+							'description'		=> __( 'Course Duration(days)', 'woocommerce' ),
+							'type' 				=> 'number',
+						)
+				 );
+			
 			$groups = znanja_get_groups();
 			if ($groups['code'] === 200) {
 				if (count($groups['object']) > 0) {
 					$groups_array = array();
+					$groups_array[''] = "Select Group ID";
 					foreach ($groups['object'] as $key => $object) {
 						$groups_array[$object->id] = $object->name;
 					}
@@ -56,7 +68,7 @@ function kkd_znanja_options_product_tab_content() {
 			woocommerce_wp_select( 
 				array( 
 					'id'				=> '_course_group_id',
-					'label'				=> __( 'Group ID', 'woocommerce' ),
+					'label'				=> __( 'Group', 'woocommerce' ),
 					'options' => $groups_array
 					)
 				);
@@ -69,6 +81,12 @@ function kkd_znanja_options_product_tab_content() {
 add_action( 'woocommerce_product_data_panels', 'kkd_znanja_options_product_tab_content' );
 function kkd_znanja_save_options_fields( $post_id ) {
 	
+	if ( isset( $_POST['_course_id'] ) ) :
+		update_post_meta( $post_id, '_course_id', absint( $_POST['_course_id'] ) );
+	endif;
+	if ( isset( $_POST['_duration'] ) ) :
+		update_post_meta( $post_id, '_duration', absint( $_POST['_duration'] ) );
+	endif;
 	if ( isset( $_POST['_course_group_id'] ) ) :
 		update_post_meta( $post_id, '_course_group_id', absint( $_POST['_course_group_id'] ) );
 	endif;
@@ -168,9 +186,19 @@ function znanja_woocommerce_payment_complete( $order_id ) {
     foreach ($items as $key => $item) {
     	$user_id = $result['user_id'];
     	$group_id = get_post_meta( $item['product_id'], '_course_group_id', true);
-    	$payload  = array('group_id' => (int)$group_id,'user_id' => (int)$user_id, 'is_instructor' => false);
-    	$response = znanja_add_to_group($payload);
-    	if ($response['code'] === 201) {
+    	$course_id = get_post_meta( $item['product_id'], '_course_id', true);
+    	$expiry = get_post_meta( $item['product_id'], '_duration', true);
+    	if ($expiry == null || $expiry == ""  || $expiry == 0) {
+    		$expiry = null;
+    	}else{
+    		$expiry = date('Y-m-d', strtotime("+".$expiry." days")); 
+    	}
+    	if ($course_id != null && $course_id != "" && $course_id != 0) {
+    		$payload = array( 'granted' => array('view'),  'expiry' => $expiry , 'user_id' => (int)$user_id, 'course_id' => (int)$course_id);
+    		$response = znanja_add_to_course($payload);
+    	}elseif ($group_id != null && $course_id != ""){
+    		$payload  = array('group_id' => (int)$group_id,'user_id' => (int)$user_id, 'is_instructor' => false);
+    		$response = znanja_add_to_group($payload);
     	
     	}
     }
@@ -193,7 +221,11 @@ function znanja_get_groups(){
 	$result = _znanja_request($url, 'GET');
 	return $result;
 }
-
+function znanja_get_courses(){
+	$url = 'https://api.znanja.com/api/hawk/v1/courses';
+	$result = _znanja_request($url, 'GET');
+	return $result;
+}
 function  znanja_get_group_users($id){
 	$url = 'https://api.znanja.com/api/hawk/v1/group/'.$id.'/users';
  
@@ -251,6 +283,13 @@ function znanja_add_to_group($payload){
 
 	$url = 'https://api.znanja.com/api/hawk/v1/group/'.$payload['group_id'].'/membership/'.$payload['user_id'];
 	$result = _znanja_request($url, 'POST', $payload);
+	return $result;
+}
+function znanja_add_to_course($payload){
+
+	$url = 'https://api.znanja.com/api/hawk/v1/'.$payload['user_id'].'-'.$payload['course_id'].'/enroll';
+	$result = _znanja_request($url, 'PUT', $payload);
+
 	return $result;
 }
 class KKD_Znanja_Settings_Tab {
